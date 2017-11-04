@@ -40,20 +40,6 @@ var decryptStringWithRsaPrivateKey = function(toDecrypt, relativeOrAbsolutePatht
 
 var salt = 'hfhfhioe';
 
-//var key = fs.readFileSync('encryption/private.key');
-//var cert = fs.readFileSync( 'encryption/primary.crt' );
-//var ca = fs.readFileSync( 'encryption/intermediate.crt' );
-
-var options = {
-    key: fs.readFileSync('encryp/server.key'),
-    cert: fs.readFileSync('encryp/server.crt'),
-    ca: fs.readFileSync('encryp/ca.crt'),
-    requestCert: true,
-    rejectUnauthorized: false
-};
-
-var https = require('https');
-
 var {ObjectId} = require('mongodb');
 
 var app = express();
@@ -288,10 +274,7 @@ app.post('/customer/makeTransaction',verify_customer,(req,res)=>{
                     res.send({response:Response.ERROR});
                 });
             });
-
-                
-
-            
+   
         }
     });
 });
@@ -525,21 +508,27 @@ app.post('/admin/delete_employee',verify_employee,(req,res)=>{
         if(!decoded || err){
             res.send({response:Response.NOT_AUTHORISED});
         }else{
-
+        
             EmployeeInfo.findOne({
                 login_id:decoded.login_id,
                 role:2  //2 for admin
             }).then((admin)=>{
+                if(admin.login_id===req.body.login_id){
+                    req.body.login_id = null;
+                    res.send({response:Response.NOT_AUTHORISED});
+                }else{
 
-                EmployeeInfo.remove({login_id:req.body.login_id},function(err){
-                    if(err){
+                    EmployeeInfo.remove({login_id:req.body.login_id},function(err){
+                        if(err){
+                            res.send({response:Response.ERROR});
+                        }else{
+                            res.send({response:Response.SUCCESS});
+                        }
+                    }).catch((e)=>{
                         res.send({response:Response.ERROR});
-                    }else{
-                        res.send({response:Response.SUCCESS});
-                    }
-                }).catch((e)=>{
-                    res.send({response:Response.ERROR});
-                });
+                    });
+                }
+                
 
             }).catch((e)=>{
                 res.send({response:Response.ERROR});
@@ -1282,8 +1271,6 @@ app.post('/manager/credit_debit_request_post',verify_employee,(req,res)=>{
     });
 });
 
-//app.listen(port,()=>{
-  //  console.log(`Listening on port ${port}`);
-//});
-
-https.createServer(options, app).listen(3000);
+app.listen(port,()=>{
+    console.log(`Listening on port ${port}`);
+});
